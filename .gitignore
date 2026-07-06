@@ -10,3 +10,4 @@ reports/
 .ipynb_checkpoints/
 
 .env
+ai/dataset/
