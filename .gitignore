@@ -11,3 +11,9 @@ reports/
 
 .env
 ai/dataset/
+# Raw dataset
+ai/dataset/BGL.log
+
+# Processed dataset
+ai/dataset/*.parquet
+ai/dataset/*.csv
