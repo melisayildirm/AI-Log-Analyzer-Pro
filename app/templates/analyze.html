@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Analyze Log</title>
+</head>
+<body>
+    <h1>Analyze Log</h1>
+
+    <form method="POST">
+        <textarea name="log_text" rows="6" cols="80" placeholder="Paste a log line here"></textarea>
+        <br><br>
+        <button type="submit">Analyze</button>
+    </form>
+
+    {% if result %}
+        <hr>
+        <h2>Prediction Result</h2>
+
+        <p><strong>Incident:</strong> {{ result.predicted_incident }}</p>
+        <p><strong>Confidence:</strong> {{ result.confidence }}%</p>
+        <p><strong>Clean Log:</strong> {{ result.clean_log }}</p>
+
+        <h3>Top Keywords</h3>
+        <ul>
+            {% for keyword in result.keywords %}
+                <li>{{ keyword }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <br>
+    <a href="/">Back to Dashboard</a>
+</body>
+</html>
