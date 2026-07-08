@@ -110,12 +110,6 @@
       <h2>Recent Analyses</h2>
       <div class="sub">Latest analysis sessions saved to MongoDB</div>
     </div>
-    <a href="url_for('analyze.analyze')" class="btn-ops-secondary">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 5v14M5 12h14"></path>
-      </svg>
-      Run Analysis
-    </a>
   </div>
 
   {% if recent_analyses and recent_analyses|length > 0 %}
@@ -134,7 +128,12 @@
       <tbody>
         {% for item in recent_analyses %}
         <tr>
-          <td class="cell-mono">{{ item.analysis_id }}</td>
+          <td class="cell-mono">
+  <a href="{{ url_for('dashboard.analysis_detail', analysis_id=item.analysis_id) }}"
+     class="text-info">
+    {{ item.analysis_id }}
+  </a>
+</td>
           <td>
             {% if item.source_type == 'file' or item.file_name %}
               <span class="cell-primary">{{ item.file_name or 'Uploaded file' }}</span>

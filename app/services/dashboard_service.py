@@ -96,3 +96,88 @@ def get_recent_predictions(limit=10):
         })
 
     return recent_predictions
+from collections import Counter
+
+
+def get_analysis_by_id(analysis_id):
+    return analyses_collection.find_one({"analysis_id": analysis_id})
+
+
+def get_predictions_by_analysis_id(analysis_id):
+    predictions = predictions_collection.find({"analysis_id": analysis_id}).sort("timestamp", 1)
+
+    result = []
+
+    for item in predictions:
+        result.append({
+            "timestamp": item.get("timestamp"),
+            "raw_log": item.get("raw_log"),
+            "clean_log": item.get("clean_log"),
+            "incident_type": item.get("incident_type"),
+            "confidence": item.get("confidence"),
+            "keywords": item.get("keywords", [])
+        })
+
+    return result
+
+
+def get_analysis_summary(analysis_id):
+    predictions = get_predictions_by_analysis_id(analysis_id)
+
+    if not predictions:
+        return {
+            "incident_distribution": {},
+            "average_confidence": 0,
+            "top_keywords": [],
+            "recommendations": []
+        }
+
+    incident_distribution = Counter(
+        item["incident_type"] for item in predictions
+    )
+
+    confidences = [
+        item["confidence"] for item in predictions
+        if item.get("confidence") is not None
+    ]
+
+    average_confidence = round(sum(confidences) / len(confidences), 2) if confidences else 0
+
+    all_keywords = []
+    for item in predictions:
+        all_keywords.extend(item.get("keywords", []))
+
+    top_keywords = Counter(all_keywords).most_common(10)
+
+    recommendations = generate_recommendations(incident_distribution)
+
+    return {
+        "incident_distribution": dict(incident_distribution),
+        "average_confidence": average_confidence,
+        "top_keywords": top_keywords,
+        "recommendations": recommendations
+    }
+
+
+def generate_recommendations(incident_distribution):
+    recommendations = []
+
+    if not incident_distribution:
+        return ["No incidents detected in this analysis."]
+
+    most_common_incident = max(incident_distribution, key=incident_distribution.get)
+
+    if most_common_incident == "Storage/File System":
+        recommendations.append("Storage/File System incidents dominate this analysis. Check disk health, filesystem integrity, and storage controller logs.")
+    elif most_common_incident == "Network/Communication":
+        recommendations.append("Network-related incidents are frequent. Inspect node connectivity, packet loss, and switch/router status.")
+    elif most_common_incident == "Memory Error":
+        recommendations.append("Memory-related incidents are frequent. Inspect memory modules, cache parity events, and affected nodes.")
+    elif most_common_incident == "Power/Thermal Issue":
+        recommendations.append("Power or thermal issues detected. Check cooling, fan status, power supply, and temperature thresholds.")
+    elif most_common_incident == "Application Failure":
+        recommendations.append("Application failures detected. Review application runtime logs, crashes, and segmentation fault traces.")
+    else:
+        recommendations.append("Multiple or unclear incident patterns detected. Review detailed logs and keyword distribution.")
+
+    return recommendations
