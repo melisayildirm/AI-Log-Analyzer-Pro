@@ -1,35 +1,128 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Analyze Log</title>
-</head>
-<body>
-    <h1>Analyze Log</h1>
+{% extends "base.html" %}
 
-    <form method="POST">
-        <textarea name="log_text" rows="6" cols="80" placeholder="Paste a log line here"></textarea>
-        <br><br>
-        <button type="submit">Analyze</button>
-    </form>
+{% block content %}
 
-    {% if result %}
-        <hr>
-        <h2>Prediction Result</h2>
+<div class="mb-4">
+    <h1 class="mb-1">Analyze New Log</h1>
+    <p class="muted-text">
+        Paste a single log line or upload a log file for AI-powered incident classification.
+    </p>
+</div>
 
-        <p><strong>Incident:</strong> {{ result.predicted_incident }}</p>
-        <p><strong>Confidence:</strong> {{ result.confidence }}%</p>
-        <p><strong>Clean Log:</strong> {{ result.clean_log }}</p>
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card-dark">
+            <h4 class="mb-3">Log Input</h4>
 
-        <h3>Top Keywords</h3>
-        <ul>
-            {% for keyword in result.keywords %}
-                <li>{{ keyword }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+            <form method="POST" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label muted-text">Paste Log Text</label>
+                    <textarea 
+                        name="log_text" 
+                        class="form-control bg-dark text-light border-secondary" 
+                        rows="8" 
+                        placeholder="Example: instruction cache parity error corrected"></textarea>
+                </div>
 
-    <br>
-    <a href="/">Back to Dashboard</a>
-</body>
-</html>
+                <div class="mb-3">
+                    <label class="form-label muted-text">Or Upload Log File</label>
+                    <input 
+                        type="file" 
+                        name="log_file" 
+                        class="form-control bg-dark text-light border-secondary"
+                        accept=".log,.txt">
+                </div>
+
+                <button type="submit" class="btn btn-info w-100">
+                    Analyze Log
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card-dark">
+            <h4 class="mb-3">Analysis Summary</h4>
+
+            {% if analysis_id %}
+                <p class="muted-text mb-1">Analysis ID</p>
+                <small class="text-info">{{ analysis_id }}</small>
+            {% endif %}
+
+            {% if result %}
+                <hr class="border-secondary">
+
+                <p class="muted-text mb-1">Incident Type</p>
+                <h3 class="text-info">{{ result.predicted_incident }}</h3>
+
+                <p class="muted-text mb-1 mt-3">Confidence</p>
+                <h3>{{ result.confidence }}%</h3>
+
+                <p class="muted-text mb-1 mt-3">Clean Log</p>
+                <p>{{ result.clean_log }}</p>
+
+                <p class="muted-text mb-2 mt-3">Top Keywords</p>
+                {% for keyword in result.keywords %}
+                    <span class="badge bg-secondary me-1 mb-1">{{ keyword }}</span>
+                {% endfor %}
+            {% elif batch_results %}
+                <hr class="border-secondary">
+
+                <p class="muted-text mb-1">Total Processed Logs</p>
+                <h3 class="text-info">{{ batch_results|length }}</h3>
+
+                <p class="muted-text mt-3">
+                    Uploaded file was analyzed successfully and saved to MongoDB.
+                </p>
+            {% else %}
+                <p class="muted-text">
+                    No prediction yet. Paste a log line or upload a log file to start analysis.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if batch_results %}
+<div class="card-dark mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Batch Analysis Results</h3>
+        <span class="muted-text">Showing uploaded log file results</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Incident Type</th>
+                    <th>Confidence</th>
+                    <th>Clean Log</th>
+                    <th>Keywords</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in batch_results %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <span class="badge bg-info text-dark">
+                                {{ item.predicted_incident }}
+                            </span>
+                        </td>
+                        <td>{{ item.confidence }}%</td>
+                        <td>{{ item.clean_log }}</td>
+                        <td>
+                            {% for keyword in item.keywords %}
+                                <span class="badge bg-secondary me-1 mb-1">{{ keyword }}</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
