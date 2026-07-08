@@ -8,6 +8,49 @@
     <h1>AI Log Analyzer Pro</h1>
     <h2>Operational Intelligence Dashboard</h2>
 
-    <a href="/analyze">Analyze Log</a>
+    <a href="/analyze">Analyze New Log</a>
+
+    <hr>
+
+    <h3>Dashboard Summary</h3>
+
+    <div>
+        <p><strong>Total Analyses:</strong> {{ total_predictions }}</p>
+        <p><strong>Average Confidence:</strong> {{ average_confidence }}%</p>
+        <p><strong>Most Common Incident:</strong> {{ most_common_incident }}</p>
+    </div>
+
+    <hr>
+
+    <h3>Recent Predictions</h3>
+
+    {% if recent_predictions %}
+        <table border="1" cellpadding="8">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Incident Type</th>
+                    <th>Confidence</th>
+                    <th>Keywords</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in recent_predictions %}
+                    <tr>
+                        <td>{{ item.timestamp }}</td>
+                        <td>{{ item.incident_type }}</td>
+                        <td>{{ item.confidence }}%</td>
+                        <td>
+                            {% for keyword in item.keywords %}
+                                {{ keyword }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No prediction records found yet.</p>
+    {% endif %}
 </body>
 </html>
