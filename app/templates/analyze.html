@@ -1,128 +1,241 @@
 {% extends "base.html" %}
 
+{% block title %}Analyze · AI Log Analyzer Pro{% endblock %}
+{% block page_title %}Analyze Logs{% endblock %}
+
 {% block content %}
 
-<div class="mb-4">
-    <h1 class="mb-1">Analyze New Log</h1>
-    <p class="muted-text">
-        Paste a single log line or upload a log file for AI-powered incident classification.
-    </p>
-</div>
+{#
+  NOTE ON FORM FIELD NAMES:
+  The Jinja variables you specified (result, batch_results, analysis_id) describe the
+  RESPONSE data only — the input form's field names weren't part of the spec, so this
+  template assumes:
+    - textarea name="log_text"   (pasted single log line / multi-line text)
+    - file input name="log_file" (uploaded .log/.txt file)
+  If your Flask route reads different keys from request.form / request.files,
+  just rename these two name="" attributes below to match — nothing else needs to change.
+#}
+
+{% macro incident_badge(label) %}
+  {% set l = (label or 'Unknown') | lower %}
+  {% if 'crit' in l or 'error' in l or 'fail' in l or 'fatal' in l or 'security' in l or 'breach' in l %}
+    <span class="badge-soft badge-critical">{{ label or 'Unknown' }}</span>
+  {% elif 'warn' in l or 'timeout' in l or 'latency' in l or 'degrad' in l %}
+    <span class="badge-soft badge-warning">{{ label or 'Unknown' }}</span>
+  {% elif 'info' in l or 'normal' in l or 'ok' in l or 'success' in l %}
+    <span class="badge-soft badge-success">{{ label or 'Unknown' }}</span>
+  {% else %}
+    <span class="badge-soft badge-info">{{ label or 'Unknown' }}</span>
+  {% endif %}
+{% endmacro %}
 
 <div class="row g-4">
-    <div class="col-lg-7">
-        <div class="card-dark">
-            <h4 class="mb-3">Log Input</h4>
 
-            <form method="POST" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label class="form-label muted-text">Paste Log Text</label>
-                    <textarea 
-                        name="log_text" 
-                        class="form-control bg-dark text-light border-secondary" 
-                        rows="8" 
-                        placeholder="Example: instruction cache parity error corrected"></textarea>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label muted-text">Or Upload Log File</label>
-                    <input 
-                        type="file" 
-                        name="log_file" 
-                        class="form-control bg-dark text-light border-secondary"
-                        accept=".log,.txt">
-                </div>
-
-                <button type="submit" class="btn btn-info w-100">
-                    Analyze Log
-                </button>
-            </form>
+  <!-- ============================== INPUT PANEL ============================== -->
+  <div class="col-12 col-xl-5">
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>New Log Analysis</h2>
+          <div class="sub">Paste a log line or upload a .log / .txt file</div>
         </div>
-    </div>
+      </div>
+      <div class="panel-body">
 
-    <div class="col-lg-5">
-        <div class="card-dark">
-            <h4 class="mb-3">Analysis Summary</h4>
-
-            {% if analysis_id %}
-                <p class="muted-text mb-1">Analysis ID</p>
-                <small class="text-info">{{ analysis_id }}</small>
-            {% endif %}
-
-            {% if result %}
-                <hr class="border-secondary">
-
-                <p class="muted-text mb-1">Incident Type</p>
-                <h3 class="text-info">{{ result.predicted_incident }}</h3>
-
-                <p class="muted-text mb-1 mt-3">Confidence</p>
-                <h3>{{ result.confidence }}%</h3>
-
-                <p class="muted-text mb-1 mt-3">Clean Log</p>
-                <p>{{ result.clean_log }}</p>
-
-                <p class="muted-text mb-2 mt-3">Top Keywords</p>
-                {% for keyword in result.keywords %}
-                    <span class="badge bg-secondary me-1 mb-1">{{ keyword }}</span>
-                {% endfor %}
-            {% elif batch_results %}
-                <hr class="border-secondary">
-
-                <p class="muted-text mb-1">Total Processed Logs</p>
-                <h3 class="text-info">{{ batch_results|length }}</h3>
-
-                <p class="muted-text mt-3">
-                    Uploaded file was analyzed successfully and saved to MongoDB.
-                </p>
-            {% else %}
-                <p class="muted-text">
-                    No prediction yet. Paste a log line or upload a log file to start analysis.
-                </p>
-            {% endif %}
+        <div class="form-tabs" role="tablist">
+          <button type="button" class="form-tab-btn active" id="tabBtnPaste" onclick="switchInputTab('paste')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"></path>
+              <rect x="9" y="3" width="6" height="4" rx="1"></rect>
+            </svg>
+            Paste Text
+          </button>
+          <button type="button" class="form-tab-btn" id="tabBtnUpload" onclick="switchInputTab('upload')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"></path>
+              <path d="M7 9l5-5 5 5M12 4v12"></path>
+            </svg>
+            Upload File
+          </button>
         </div>
-    </div>
-</div>
 
-{% if batch_results %}
-<div class="card-dark mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0">Batch Analysis Results</h3>
-        <span class="muted-text">Showing uploaded log file results</span>
-    </div>
+        <form action="{{ url_for('analyze.analyze') }}" method="POST" enctype="multipart/form-data">
 
-    <div class="table-responsive">
-        <table class="table table-dark table-hover align-middle">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Incident Type</th>
-                    <th>Confidence</th>
-                    <th>Clean Log</th>
-                    <th>Keywords</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in batch_results %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>
-                            <span class="badge bg-info text-dark">
-                                {{ item.predicted_incident }}
-                            </span>
-                        </td>
-                        <td>{{ item.confidence }}%</td>
-                        <td>{{ item.clean_log }}</td>
-                        <td>
-                            {% for keyword in item.keywords %}
-                                <span class="badge bg-secondary me-1 mb-1">{{ keyword }}</span>
-                            {% endfor %}
-                        </td>
-                    </tr>
+          <div class="input-panel active" id="panelPaste">
+            <label class="form-label-ops" for="log_text">Log content</label>
+            <textarea class="form-control-ops" id="log_text" name="log_text"
+                      placeholder="2026-07-08 14:32:10 ERROR [auth-service] Connection timeout to database host db-primary-02..."></textarea>
+          </div>
+
+          <div class="input-panel" id="panelUpload">
+            <label class="form-label-ops">Log file (.log / .txt)</label>
+            <div class="file-drop" id="fileDropZone">
+              <input type="file" id="log_file" name="log_file" accept=".log,.txt">
+              <svg class="file-drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"></path>
+                <path d="M7 9l5-5 5 5M12 4v12"></path>
+              </svg>
+              <div class="file-drop-text">Click to choose a file or drag it here</div>
+              <div class="file-drop-sub">.log or .txt · one line per log entry</div>
+              <div class="file-drop-filename" id="fileNamePreview"></div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end mt-4">
+            <button type="submit" class="btn-ops-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"></path>
+                <circle cx="12" cy="12" r="3.2"></circle>
+              </svg>
+              Run Analysis
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== RESULTS ============================== -->
+  <div class="col-12 col-xl-7">
+
+    {% if result %}
+    <div class="panel result-card mb-4">
+      <div class="panel-header">
+        <div>
+          <h2>Analysis Result</h2>
+          <div class="sub">Analysis ID: <span class="text-mono">{{ result.analysis_id }}</span></div>
+        </div>
+        {{ incident_badge(result.predicted_incident) }}
+      </div>
+      <div class="panel-body">
+
+        <div class="result-summary-grid">
+          <div class="result-stat">
+            <div class="label">Predicted Incident</div>
+            <div class="value">{{ result.predicted_incident }}</div>
+          </div>
+          <div class="result-stat">
+            <div class="label">Confidence</div>
+            <div class="value">{{ result.confidence }}%</div>
+            <div class="confidence-bar-track">
+              <div class="confidence-bar-fill" style="width: {{ result.confidence }}%;"></div>
+            </div>
+          </div>
+          <div class="result-stat">
+            <div class="label">Saved Record</div>
+            <div class="value" style="font-size: 12.5px;">{{ result.saved_id }}</div>
+          </div>
+        </div>
+
+        <div class="section-title">Cleaned Log</div>
+        <div class="log-snippet mb-3">{{ result.clean_log }}</div>
+
+        {% if result.keywords %}
+        <div class="section-title">Extracted Keywords</div>
+        <div>
+          {% for kw in result.keywords %}
+            <span class="keyword-chip">{{ kw }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+    {% endif %}
+
+    {% if batch_results and batch_results|length > 0 %}
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Batch Results</h2>
+          <div class="sub">{{ batch_results|length }} log lines classified · Analysis ID: <span class="text-mono">{{ analysis_id }}</span></div>
+        </div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="table-ops">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Predicted Incident</th>
+              <th>Confidence</th>
+              <th>Cleaned Log</th>
+              <th>Keywords</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in batch_results %}
+            <tr>
+              <td class="cell-mono">{{ loop.index }}</td>
+              <td>{{ incident_badge(item.predicted_incident) }}</td>
+              <td class="cell-primary">{{ item.confidence }}%</td>
+              <td class="cell-mono" style="max-width: 320px; white-space: normal;">{{ item.clean_log }}</td>
+              <td>
+                {% for kw in item.keywords %}
+                  <span class="keyword-chip">{{ kw }}</span>
                 {% endfor %}
-            </tbody>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
         </table>
+      </div>
     </div>
-</div>
-{% endif %}
+    {% endif %}
 
+    {% if not result and not batch_results %}
+    <div class="panel">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"></path>
+          <rect x="9" y="3" width="6" height="4" rx="1"></rect>
+        </svg>
+        <div>Paste a log or upload a file to see analysis results here.</div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function switchInputTab(tab) {
+    const paste = document.getElementById('panelPaste');
+    const upload = document.getElementById('panelUpload');
+    const btnPaste = document.getElementById('tabBtnPaste');
+    const btnUpload = document.getElementById('tabBtnUpload');
+
+    if (tab === 'paste') {
+      paste.classList.add('active');
+      upload.classList.remove('active');
+      btnPaste.classList.add('active');
+      btnUpload.classList.remove('active');
+    } else {
+      upload.classList.add('active');
+      paste.classList.remove('active');
+      btnUpload.classList.add('active');
+      btnPaste.classList.remove('active');
+    }
+  }
+
+  // Show chosen filename in the drop zone
+  const logFileInput = document.getElementById('log_file');
+  if (logFileInput) {
+    logFileInput.addEventListener('change', function () {
+      const preview = document.getElementById('fileNamePreview');
+      const dropZone = document.getElementById('fileDropZone');
+      if (this.files && this.files.length > 0) {
+        preview.textContent = this.files[0].name;
+        preview.style.display = 'block';
+        dropZone.classList.add('has-file');
+      } else {
+        preview.style.display = 'none';
+        dropZone.classList.remove('has-file');
+      }
+    });
+  }
+</script>
 {% endblock %}

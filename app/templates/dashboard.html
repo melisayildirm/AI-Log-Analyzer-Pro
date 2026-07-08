@@ -1,94 +1,167 @@
 {% extends "base.html" %}
 
+{% block title %}Dashboard · AI Log Analyzer Pro{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('analyze.analyze') }}" class="btn-ops-primary">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 5v14M5 12h14"></path>
+    </svg>
+    New Analysis
+  </a>
+{% endblock %}
+
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+{# ---------------------------------------------------------------------
+   Badge helper macros — classify free-text incident / status strings
+   into a consistent visual signal without touching backend logic.
+--------------------------------------------------------------------- #}
+{% macro incident_badge(label) %}
+  {% set l = (label or 'Unknown') | lower %}
+  {% if 'crit' in l or 'error' in l or 'fail' in l or 'fatal' in l or 'security' in l or 'breach' in l %}
+    <span class="badge-soft badge-critical">{{ label or 'Unknown' }}</span>
+  {% elif 'warn' in l or 'timeout' in l or 'latency' in l or 'degrad' in l %}
+    <span class="badge-soft badge-warning">{{ label or 'Unknown' }}</span>
+  {% elif 'info' in l or 'normal' in l or 'ok' in l or 'success' in l %}
+    <span class="badge-soft badge-success">{{ label or 'Unknown' }}</span>
+  {% else %}
+    <span class="badge-soft badge-info">{{ label or 'Unknown' }}</span>
+  {% endif %}
+{% endmacro %}
+
+{% macro status_badge(label) %}
+  {% set l = (label or 'unknown') | lower %}
+  {% if l in ['completed', 'complete', 'success', 'done'] %}
+    <span class="badge-soft status-completed">{{ label }}</span>
+  {% elif l in ['processing', 'pending', 'running', 'queued'] %}
+    <span class="badge-soft status-processing">{{ label }}</span>
+  {% elif l in ['failed', 'error'] %}
+    <span class="badge-soft status-failed">{{ label }}</span>
+  {% else %}
+    <span class="badge-soft badge-neutral">{{ label or 'Unknown' }}</span>
+  {% endif %}
+{% endmacro %}
+
+<!-- ============================== KPI GRID ============================== -->
+<div class="kpi-grid">
+
+  <div class="kpi-card" style="--kpi-accent: var(--accent-primary);">
+    <div class="kpi-top">
+      <span class="kpi-label">Total Analyses</span>
+      <span class="kpi-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"></path>
+          <path d="M7 14l4-4 3 3 5-6"></path>
+        </svg>
+      </span>
+    </div>
+    <div class="kpi-value">{{ total_analyses }}</div>
+    <div class="kpi-foot">Sessions run through the pipeline</div>
+  </div>
+
+  <div class="kpi-card" style="--kpi-accent: var(--signal-info);">
+    <div class="kpi-top">
+      <span class="kpi-label">Total Logs</span>
+      <span class="kpi-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6h16M4 12h16M4 18h10"></path>
+        </svg>
+      </span>
+    </div>
+    <div class="kpi-value">{{ total_predictions }}</div>
+    <div class="kpi-foot">Individual log lines classified</div>
+  </div>
+
+  <div class="kpi-card" style="--kpi-accent: var(--signal-success);">
+    <div class="kpi-top">
+      <span class="kpi-label">Average Confidence</span>
+      <span class="kpi-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.6z"></path>
+        </svg>
+      </span>
+    </div>
+    <div class="kpi-value">{{ average_confidence }}<span class="unit">%</span></div>
+    <div class="kpi-foot">Mean model certainty across logs</div>
+  </div>
+
+  <div class="kpi-card" style="--kpi-accent: var(--signal-warning);">
+    <div class="kpi-top">
+      <span class="kpi-label">Most Common Incident</span>
+      <span class="kpi-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 9v4M12 17h.01"></path>
+          <path d="M10.3 3.9L2.5 17a2 2 0 001.7 3h15.6a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"></path>
+        </svg>
+      </span>
+    </div>
+    <div class="kpi-value" style="font-size: 19px;">{{ most_common_incident }}</div>
+    <div class="kpi-foot">Dominant incident type this period</div>
+  </div>
+
+</div>
+
+<!-- ============================== RECENT ANALYSES ============================== -->
+<div class="panel">
+  <div class="panel-header">
     <div>
-        <h1 class="mb-1">Operational Intelligence Dashboard</h1>
-        <p class="muted-text">AI-powered log monitoring and incident analysis platform</p>
+      <h2>Recent Analyses</h2>
+      <div class="sub">Latest analysis sessions saved to MongoDB</div>
     </div>
+    <a href="url_for('analyze.analyze')" class="btn-ops-secondary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 5v14M5 12h14"></path>
+      </svg>
+      Run Analysis
+    </a>
+  </div>
 
-    <a href="/analyze" class="btn btn-info">Analyze New Log</a>
-</div>
-
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card-dark">
-            <p class="muted-text mb-1">Total Analyses</p>
-            <div class="metric-value">{{ total_analyses }}</div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card-dark">
-            <p class="muted-text mb-1">Total Logs</p>
-            <div class="metric-value">{{ total_predictions }}</div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card-dark">
-            <p class="muted-text mb-1">Average Confidence</p>
-            <div class="metric-value">{{ average_confidence }}%</div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card-dark">
-            <p class="muted-text mb-1">Most Common Incident</p>
-            <h5 class="mt-2">{{ most_common_incident }}</h5>
-        </div>
-    </div>
-</div>
-
-<div class="card-dark">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0">Recent Analyses</h3>
-        <span class="muted-text">Latest analysis sessions</span>
-    </div>
-
-    {% if recent_analyses %}
-        <div class="table-responsive">
-            <table class="table table-dark table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Analysis ID</th>
-                        <th>Source</th>
-                        <th>File Name</th>
-                        <th>Total Logs</th>
-                        <th>Most Common Incident</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in recent_analyses %}
-                        <tr>
-                            <td>
-                                <small class="text-info">{{ item.analysis_id }}</small>
-                            </td>
-                            <td>{{ item.source_type }}</td>
-                            <td>{{ item.file_name or "-" }}</td>
-                            <td>{{ item.total_logs }}</td>
-                            <td>
-                                <span class="badge bg-info text-dark">
-                                    {{ item.most_common_incident }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge bg-success">
-                                    {{ item.status }}
-                                </span>
-                            </td>
-                            <td>{{ item.created_at }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <p class="muted-text">No analysis session found yet.</p>
-    {% endif %}
+  {% if recent_analyses and recent_analyses|length > 0 %}
+  <div style="overflow-x: auto;">
+    <table class="table-ops">
+      <thead>
+        <tr>
+          <th>Analysis</th>
+          <th>Source</th>
+          <th>Logs</th>
+          <th>Top Incident</th>
+          <th>Status</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in recent_analyses %}
+        <tr>
+          <td class="cell-mono">{{ item.analysis_id }}</td>
+          <td>
+            {% if item.source_type == 'file' or item.file_name %}
+              <span class="cell-primary">{{ item.file_name or 'Uploaded file' }}</span>
+              <div class="text-muted-ops text-mono" style="font-size: 11px;">file upload</div>
+            {% else %}
+              <span class="cell-primary">Pasted log</span>
+              <div class="text-muted-ops text-mono" style="font-size: 11px;">{{ item.source_type }}</div>
+            {% endif %}
+          </td>
+          <td class="cell-primary">{{ item.total_logs }}</td>
+          <td>{{ incident_badge(item.most_common_incident) }}</td>
+          <td>{{ status_badge(item.status) }}</td>
+          <td class="cell-mono">{{ item.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="table-empty">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 3v18h18"></path>
+      <path d="M7 14l4-4 3 3 5-6"></path>
+    </svg>
+    <div>No analyses yet — run your first log analysis to see results here.</div>
+  </div>
+  {% endif %}
 </div>
 
 {% endblock %}
