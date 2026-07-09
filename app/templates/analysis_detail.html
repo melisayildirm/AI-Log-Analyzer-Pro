@@ -4,10 +4,23 @@
 {% block page_title %}Analysis Detail{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ url_for('dashboard.dashboard') }}" class="btn-ops-primary">
-  Back to Dashboard
-</a>
+<div style="display:flex; gap:10px; align-items:center;">
+  <a href="{{ url_for('dashboard.export_analysis_csv', analysis_id=analysis.analysis_id) }}"
+     class="btn-ops-primary">
+    Export CSV
+  </a>
+
+  <a href="{{ url_for('dashboard.export_analysis_json', analysis_id=analysis.analysis_id) }}"
+     class="btn-ops-primary">
+    Export JSON
+  </a>
+
+  <a href="{{ url_for('dashboard.dashboard') }}" class="btn-ops-primary">
+    Back to Dashboard
+  </a>
+</div>
 {% endblock %}
+
 
 {% block content %}
 
@@ -89,11 +102,14 @@
     </div>
   </div>
 </div>
-<div class="panel mb-4">
+
+<div class="panel">
   <div class="panel-header">
     <div>
-      <h2>Search & Filter</h2>
-      <div class="sub">Filter logs by text, incident type, and confidence</div>
+      <h2>Log Predictions</h2>
+      <div class="sub">
+        <span id="visibleLogCount">{{ predictions|length }}</span> / {{ predictions|length }} classified log records
+      </div>
     </div>
   </div>
 
@@ -104,7 +120,7 @@
         <input type="text"
                id="logSearchInput"
                class="form-control-ops"
-               placeholder="Search in cleaned logs or keywords...">
+               placeholder="Search incident, cleaned log or keywords...">
       </div>
 
       <div class="col-12 col-xl-4">
@@ -125,16 +141,9 @@
           <option value="80">80% and above</option>
           <option value="70">70% and above</option>
           <option value="50">50% and above</option>
+          <option value="0">0% and above</option>
         </select>
       </div>
-    </div>
-  </div>
-</div>
-<div class="panel">
-  <div class="panel-header">
-    <div>
-      <h2>Log Predictions</h2>
-      <div class="sub">{{ predictions|length }} classified log records</div>
     </div>
   </div>
 
@@ -151,17 +160,18 @@
         </tr>
       </thead>
 
-      <tbody>
+      <tbody id="predictionTableBody">
         {% for item in predictions %}
+        {% set conf = item.confidence|float %}
         <tr class="prediction-row"
-            data-incident="{{ item.incident_type }}"
-            data-confidence="{{ item.confidence }}"
-            data-search="{{ (item.clean_log or item.raw_log or '') }} {% for kw in item.keywords %}{{ kw }} {% endfor %}">
-          <td class="cell-mono">{{ loop.index }}</td>
+            data-incident="{{ item.incident_type|lower }}"
+            data-confidence="{{ conf }}"
+            data-search="{{ (item.incident_type ~ ' ' ~ (item.clean_log or item.raw_log or '') ~ ' ' ~ (item.keywords|join(' ')))|lower }}">
+          <td class="cell-mono row-number">{{ loop.index }}</td>
           <td>
             <span class="badge-soft badge-info">{{ item.incident_type }}</span>
           </td>
-          <td class="cell-primary">{{ item.confidence }}%</td>
+          <td class="cell-primary">{{ conf }}%</td>
           <td class="cell-mono" style="max-width:420px; white-space:normal;">
             {{ item.clean_log or item.raw_log }}
           </td>
@@ -179,38 +189,61 @@
 </div>
 
 {% endblock %}
+
 {% block extra_scripts %}
 <script>
   const searchInput = document.getElementById("logSearchInput");
   const incidentFilter = document.getElementById("incidentFilter");
   const confidenceFilter = document.getElementById("confidenceFilter");
+  const tableBody = document.getElementById("predictionTableBody");
+  const visibleLogCount = document.getElementById("visibleLogCount");
+
+  const originalRows = Array.from(document.querySelectorAll(".prediction-row"));
 
   function filterLogs() {
-    const searchValue = searchInput.value.toLowerCase();
-    const selectedIncident = incidentFilter.value;
+    const searchValue = searchInput.value.trim().toLowerCase();
+    const selectedIncident = incidentFilter.value.toLowerCase();
     const minConfidence = confidenceFilter.value;
 
-    const rows = document.querySelectorAll(".prediction-row");
+    const matchedRows = [];
+    const unmatchedRows = [];
 
-    rows.forEach(row => {
-      const rowText = row.dataset.search.toLowerCase();
-      const rowIncident = row.dataset.incident;
-      const rowConfidence = parseFloat(row.dataset.confidence || 0);
+    originalRows.forEach(row => {
+      const rowText = row.getAttribute("data-search") || "";
+      const rowIncident = row.getAttribute("data-incident") || "";
+      const rowConfidence = Number(row.getAttribute("data-confidence") || 0);
 
-      const matchesSearch = rowText.includes(searchValue);
+      const matchesSearch = searchValue === "" || rowText.includes(searchValue);
       const matchesIncident = selectedIncident === "all" || rowIncident === selectedIncident;
-      const matchesConfidence = minConfidence === "all" || rowConfidence >= parseFloat(minConfidence);
+      const matchesConfidence = minConfidence === "all" || rowConfidence >= Number(minConfidence);
 
       if (matchesSearch && matchesIncident && matchesConfidence) {
-        row.style.display = "";
+        matchedRows.push(row);
       } else {
-        row.style.display = "none";
+        unmatchedRows.push(row);
       }
     });
+
+    tableBody.innerHTML = "";
+
+    matchedRows.forEach((row, index) => {
+      row.style.display = "";
+      row.querySelector(".row-number").textContent = index + 1;
+      tableBody.appendChild(row);
+    });
+
+    unmatchedRows.forEach(row => {
+      row.style.display = "none";
+      tableBody.appendChild(row);
+    });
+
+    visibleLogCount.textContent = matchedRows.length;
   }
 
   searchInput.addEventListener("input", filterLogs);
   incidentFilter.addEventListener("change", filterLogs);
   confidenceFilter.addEventListener("change", filterLogs);
+
+  filterLogs();
 </script>
 {% endblock %}
