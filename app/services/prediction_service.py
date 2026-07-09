@@ -30,10 +30,17 @@ def _svc_confidence(vector):
     if scores.ndim == 1:
         scores = np.array([scores])
 
-    exp_scores = np.exp(scores - np.max(scores, axis=1, keepdims=True))
-    pseudo_probs = exp_scores / exp_scores.sum(axis=1, keepdims=True)
+    sorted_scores = np.sort(scores[0])[::-1]
 
-    return float(round(pseudo_probs.max() * 100, 2))
+    if len(sorted_scores) < 2:
+        return 100.0
+
+    margin = sorted_scores[0] - sorted_scores[1]
+
+    confidence = 1 / (1 + np.exp(-margin))
+    confidence = confidence * 100
+
+    return float(round(confidence, 2))
 
 
 def predict_log(log_text):
