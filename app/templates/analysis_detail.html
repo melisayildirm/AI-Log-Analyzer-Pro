@@ -89,7 +89,47 @@
     </div>
   </div>
 </div>
+<div class="panel mb-4">
+  <div class="panel-header">
+    <div>
+      <h2>Search & Filter</h2>
+      <div class="sub">Filter logs by text, incident type, and confidence</div>
+    </div>
+  </div>
 
+  <div class="panel-body">
+    <div class="row g-3">
+      <div class="col-12 col-xl-5">
+        <label class="form-label-ops">Search Log</label>
+        <input type="text"
+               id="logSearchInput"
+               class="form-control-ops"
+               placeholder="Search in cleaned logs or keywords...">
+      </div>
+
+      <div class="col-12 col-xl-4">
+        <label class="form-label-ops">Incident Type</label>
+        <select id="incidentFilter" class="form-control-ops">
+          <option value="all">All Incidents</option>
+          {% for incident in summary.incident_distribution.keys() %}
+            <option value="{{ incident }}">{{ incident }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 col-xl-3">
+        <label class="form-label-ops">Confidence</label>
+        <select id="confidenceFilter" class="form-control-ops">
+          <option value="all">All</option>
+          <option value="90">90% and above</option>
+          <option value="80">80% and above</option>
+          <option value="70">70% and above</option>
+          <option value="50">50% and above</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="panel">
   <div class="panel-header">
     <div>
@@ -113,7 +153,10 @@
 
       <tbody>
         {% for item in predictions %}
-        <tr>
+        <tr class="prediction-row"
+            data-incident="{{ item.incident_type }}"
+            data-confidence="{{ item.confidence }}"
+            data-search="{{ (item.clean_log or item.raw_log or '') }} {% for kw in item.keywords %}{{ kw }} {% endfor %}">
           <td class="cell-mono">{{ loop.index }}</td>
           <td>
             <span class="badge-soft badge-info">{{ item.incident_type }}</span>
@@ -135,4 +178,39 @@
   </div>
 </div>
 
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  const searchInput = document.getElementById("logSearchInput");
+  const incidentFilter = document.getElementById("incidentFilter");
+  const confidenceFilter = document.getElementById("confidenceFilter");
+
+  function filterLogs() {
+    const searchValue = searchInput.value.toLowerCase();
+    const selectedIncident = incidentFilter.value;
+    const minConfidence = confidenceFilter.value;
+
+    const rows = document.querySelectorAll(".prediction-row");
+
+    rows.forEach(row => {
+      const rowText = row.dataset.search.toLowerCase();
+      const rowIncident = row.dataset.incident;
+      const rowConfidence = parseFloat(row.dataset.confidence || 0);
+
+      const matchesSearch = rowText.includes(searchValue);
+      const matchesIncident = selectedIncident === "all" || rowIncident === selectedIncident;
+      const matchesConfidence = minConfidence === "all" || rowConfidence >= parseFloat(minConfidence);
+
+      if (matchesSearch && matchesIncident && matchesConfidence) {
+        row.style.display = "";
+      } else {
+        row.style.display = "none";
+      }
+    });
+  }
+
+  searchInput.addEventListener("input", filterLogs);
+  incidentFilter.addEventListener("change", filterLogs);
+  confidenceFilter.addEventListener("change", filterLogs);
+</script>
 {% endblock %}

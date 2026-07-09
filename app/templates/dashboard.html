@@ -14,10 +14,6 @@
 
 {% block content %}
 
-{# ---------------------------------------------------------------------
-   Badge helper macros — classify free-text incident / status strings
-   into a consistent visual signal without touching backend logic.
---------------------------------------------------------------------- #}
 {% macro incident_badge(label) %}
   {% set l = (label or 'Unknown') | lower %}
   {% if 'crit' in l or 'error' in l or 'fail' in l or 'fatal' in l or 'security' in l or 'breach' in l %}
@@ -102,6 +98,7 @@
   </div>
 
 </div>
+
 <div class="row g-4 mb-4">
 
   <div class="col-12 col-xl-4">
@@ -168,17 +165,20 @@
           <th>Top Incident</th>
           <th>Status</th>
           <th>Created</th>
+          <th>Action</th>
         </tr>
       </thead>
+
       <tbody>
         {% for item in recent_analyses %}
         <tr>
           <td class="cell-mono">
-  <a href="{{ url_for('dashboard.analysis_detail', analysis_id=item.analysis_id) }}"
-     class="text-info">
-    {{ item.analysis_id }}
-  </a>
-</td>
+            <a href="{{ url_for('dashboard.analysis_detail', analysis_id=item.analysis_id) }}"
+               class="text-info">
+              {{ item.analysis_id }}
+            </a>
+          </td>
+
           <td>
             {% if item.source_type == 'file' or item.file_name %}
               <span class="cell-primary">{{ item.file_name or 'Uploaded file' }}</span>
@@ -188,10 +188,19 @@
               <div class="text-muted-ops text-mono" style="font-size: 11px;">{{ item.source_type }}</div>
             {% endif %}
           </td>
+
           <td class="cell-primary">{{ item.total_logs }}</td>
           <td>{{ incident_badge(item.most_common_incident) }}</td>
           <td>{{ status_badge(item.status) }}</td>
           <td class="cell-mono">{{ item.created_at }}</td>
+
+          <td>
+            <a href="{{ url_for('dashboard.analysis_detail', analysis_id=item.analysis_id) }}"
+               class="btn-ops-primary"
+               style="padding: 8px 12px; font-size: 12px; white-space: nowrap;">
+              View Details
+            </a>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -209,6 +218,7 @@
 </div>
 
 {% endblock %}
+
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
