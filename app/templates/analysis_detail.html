@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Detail · AI Log Analyzer Pro{% endblock %}
+{% block page_title %}Analysis Detail{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('dashboard.dashboard') }}" class="btn-ops-primary">
+  Back to Dashboard
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="panel mb-4">
+  <div class="panel-header">
+    <div>
+      <h2>Analysis Session</h2>
+      <div class="sub">
+        <span class="text-mono">{{ analysis.analysis_id }}</span>
+      </div>
+    </div>
+    <span class="badge-soft status-completed">{{ analysis.status }}</span>
+  </div>
+
+  <div class="panel-body">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Source</div>
+        <div class="kpi-value" style="font-size:18px;">
+          {{ analysis.file_name or "Manual Input" }}
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Total Logs</div>
+        <div class="kpi-value">{{ analysis.total_logs }}</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Average Confidence</div>
+        <div class="kpi-value">{{ summary.average_confidence }}%</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Created At</div>
+        <div class="kpi-value" style="font-size:15px;">
+          {{ analysis.created_at }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-12 col-xl-6">
+    <div class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2>Incident Distribution</h2>
+          <div class="sub">Detected incident types in this session</div>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        {% for incident, count in summary.incident_distribution.items() %}
+          <div class="d-flex justify-content-between mb-2">
+            <span>{{ incident }}</span>
+            <span class="cell-primary">{{ count }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-6">
+    <div class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2>Recommendations</h2>
+          <div class="sub">Rule-based operational suggestions</div>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        {% for rec in summary.recommendations %}
+          <div class="log-snippet mb-2">{{ rec }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <div>
+      <h2>Log Predictions</h2>
+      <div class="sub">{{ predictions|length }} classified log records</div>
+    </div>
+  </div>
+
+  <div style="overflow-x:auto;">
+    <table class="table-ops">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Incident</th>
+          <th>Confidence</th>
+          <th>Cleaned Log</th>
+          <th>Keywords</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for item in predictions %}
+        <tr>
+          <td class="cell-mono">{{ loop.index }}</td>
+          <td>
+            <span class="badge-soft badge-info">{{ item.incident_type }}</span>
+          </td>
+          <td class="cell-primary">{{ item.confidence }}%</td>
+          <td class="cell-mono" style="max-width:420px; white-space:normal;">
+            {{ item.clean_log or item.raw_log }}
+          </td>
+          <td>
+            {% for kw in item.keywords %}
+              <span class="keyword-chip">{{ kw }}</span>
+            {% endfor %}
+          </td>
+          <td class="cell-mono">{{ item.timestamp }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
