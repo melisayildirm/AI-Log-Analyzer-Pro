@@ -949,3 +949,140 @@ textarea.form-control-ops::placeholder {
   background: rgba(96, 165, 250, 0.45);
   border-radius: 999px;
 }
+.ai-report-panel {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(8, 13, 24, 0.98));
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+}
+
+.ai-report-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 26px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 34%),
+    radial-gradient(circle at top right, rgba(168, 85, 247, 0.12), transparent 30%);
+}
+
+.ai-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: #60a5fa;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.ai-report-header h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #f8fafc;
+}
+
+.ai-report-header p {
+  margin: 7px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.ai-provider-pill {
+  height: fit-content;
+  padding: 8px 13px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ai-report-body {
+  padding: 22px 26px 26px;
+}
+
+.risk-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  margin-bottom: 18px;
+}
+
+.risk-banner strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.risk-banner span {
+  font-size: 13px;
+  opacity: 0.88;
+}
+
+.risk-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.risk-critical {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fecaca;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+}
+
+.risk-critical .risk-dot {
+  background: #ef4444;
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.9);
+}
+
+.risk-high {
+  background: rgba(249, 115, 22, 0.14);
+  color: #fed7aa;
+  border: 1px solid rgba(249, 115, 22, 0.45);
+}
+
+.risk-high .risk-dot {
+  background: #f97316;
+  box-shadow: 0 0 18px rgba(249, 115, 22, 0.9);
+}
+
+.risk-medium {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.risk-medium .risk-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.9);
+}
+
+.risk-low {
+  background: rgba(34, 197, 94, 0.14);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.45);
+}
+
+.risk-low .risk-dot {
+  background: #22c55e;
+  box-shadow: 0 0 18px rgba(34, 197, 94, 0.9);
+}
+
+.ai-summary-box {
+  background: rgba(2, 6, 23, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 20px;
+  white-space: pre-line;
+  line-height: 1.75;
+  color: #dbeafe;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
