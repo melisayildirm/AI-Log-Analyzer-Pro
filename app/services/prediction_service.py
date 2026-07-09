@@ -1,10 +1,11 @@
 import re
 import joblib
+import numpy as np
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
-MODEL_PATH = BASE_DIR / "ai" / "trained_models" / "logistic_regression_model.pkl"
+MODEL_PATH = BASE_DIR / "ai" / "trained_models" / "linear_svc_model.pkl"
 VECTORIZER_PATH = BASE_DIR / "ai" / "trained_models" / "tfidf_vectorizer.pkl"
 
 model = joblib.load(MODEL_PATH)
@@ -13,7 +14,6 @@ vectorizer = joblib.load(VECTORIZER_PATH)
 
 def clean_log(text):
     text = str(text).lower()
-
     text = re.sub(r'\([^)]*\)', ' ', text)
     text = re.sub(r'0x[a-fA-F0-9]+', ' ', text)
     text = re.sub(r'[/\\][^\s]+', ' ', text)
@@ -21,8 +21,19 @@ def clean_log(text):
     text = re.sub(r'[^a-zA-Z\s]', ' ', text)
     text = re.sub(r'\b[a-zA-Z]\b', ' ', text)
     text = re.sub(r'\s+', ' ', text).strip()
-
     return text
+
+
+def _svc_confidence(vector):
+    scores = model.decision_function(vector)
+
+    if scores.ndim == 1:
+        scores = np.array([scores])
+
+    exp_scores = np.exp(scores - np.max(scores, axis=1, keepdims=True))
+    pseudo_probs = exp_scores / exp_scores.sum(axis=1, keepdims=True)
+
+    return float(round(pseudo_probs.max() * 100, 2))
 
 
 def predict_log(log_text):
@@ -30,9 +41,7 @@ def predict_log(log_text):
     vector = vectorizer.transform([clean_text])
 
     prediction = model.predict(vector)[0]
-    probabilities = model.predict_proba(vector)[0]
-
-    confidence = float(round(probabilities.max() * 100, 2))
+    confidence = _svc_confidence(vector)
 
     return {
         "original_log": log_text,
@@ -56,10 +65,8 @@ def get_top_keywords(log_text, top_n=5):
     contribution_scores = tfidf_scores * class_weights
     top_indices = contribution_scores.argsort()[-top_n:][::-1]
 
-    keywords = [
+    return [
         feature_names[i]
         for i in top_indices
         if contribution_scores[i] > 0
     ]
-
-    return keywords

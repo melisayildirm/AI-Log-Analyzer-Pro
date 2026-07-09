@@ -5,17 +5,6 @@
 
 {% block content %}
 
-{#
-  NOTE ON FORM FIELD NAMES:
-  The Jinja variables you specified (result, batch_results, analysis_id) describe the
-  RESPONSE data only — the input form's field names weren't part of the spec, so this
-  template assumes:
-    - textarea name="log_text"   (pasted single log line / multi-line text)
-    - file input name="log_file" (uploaded .log/.txt file)
-  If your Flask route reads different keys from request.form / request.files,
-  just rename these two name="" attributes below to match — nothing else needs to change.
-#}
-
 {% macro incident_badge(label) %}
   {% set l = (label or 'Unknown') | lower %}
   {% if 'crit' in l or 'error' in l or 'fail' in l or 'fatal' in l or 'security' in l or 'breach' in l %}
@@ -31,7 +20,6 @@
 
 <div class="row g-4">
 
-  <!-- ============================== INPUT PANEL ============================== -->
   <div class="col-12 col-xl-5">
     <div class="panel">
       <div class="panel-header">
@@ -40,21 +28,14 @@
           <div class="sub">Paste a log line or upload a .log / .txt file</div>
         </div>
       </div>
-      <div class="panel-body">
 
+      <div class="panel-body">
         <div class="form-tabs" role="tablist">
           <button type="button" class="form-tab-btn active" id="tabBtnPaste" onclick="switchInputTab('paste')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"></path>
-              <rect x="9" y="3" width="6" height="4" rx="1"></rect>
-            </svg>
             Paste Text
           </button>
+
           <button type="button" class="form-tab-btn" id="tabBtnUpload" onclick="switchInputTab('upload')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"></path>
-              <path d="M7 9l5-5 5 5M12 4v12"></path>
-            </svg>
             Upload File
           </button>
         </div>
@@ -63,7 +44,9 @@
 
           <div class="input-panel active" id="panelPaste">
             <label class="form-label-ops" for="log_text">Log content</label>
-            <textarea class="form-control-ops" id="log_text" name="log_text"
+            <textarea class="form-control-ops"
+                      id="log_text"
+                      name="log_text"
                       placeholder="2026-07-08 14:32:10 ERROR [auth-service] Connection timeout to database host db-primary-02..."></textarea>
           </div>
 
@@ -71,10 +54,6 @@
             <label class="form-label-ops">Log file (.log / .txt)</label>
             <div class="file-drop" id="fileDropZone">
               <input type="file" id="log_file" name="log_file" accept=".log,.txt">
-              <svg class="file-drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"></path>
-                <path d="M7 9l5-5 5 5M12 4v12"></path>
-              </svg>
               <div class="file-drop-text">Click to choose a file or drag it here</div>
               <div class="file-drop-sub">.log or .txt · one line per log entry</div>
               <div class="file-drop-filename" id="fileNamePreview"></div>
@@ -83,20 +62,15 @@
 
           <div class="d-flex justify-content-end mt-4">
             <button type="submit" class="btn-ops-primary">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"></path>
-                <circle cx="12" cy="12" r="3.2"></circle>
-              </svg>
               Run Analysis
             </button>
           </div>
-        </form>
 
+        </form>
       </div>
     </div>
   </div>
 
-  <!-- ============================== RESULTS ============================== -->
   <div class="col-12 col-xl-7">
 
     {% if result %}
@@ -104,17 +78,21 @@
       <div class="panel-header">
         <div>
           <h2>Analysis Result</h2>
-          <div class="sub">Analysis ID: <span class="text-mono">{{ result.analysis_id }}</span></div>
+          <div class="sub">
+            Analysis ID:
+            <span class="text-mono">{{ result.analysis_id }}</span>
+          </div>
         </div>
         {{ incident_badge(result.predicted_incident) }}
       </div>
-      <div class="panel-body">
 
+      <div class="panel-body">
         <div class="result-summary-grid">
           <div class="result-stat">
             <div class="label">Predicted Incident</div>
             <div class="value">{{ result.predicted_incident }}</div>
           </div>
+
           <div class="result-stat">
             <div class="label">Confidence</div>
             <div class="value">{{ result.confidence }}%</div>
@@ -122,6 +100,7 @@
               <div class="confidence-bar-fill" style="width: {{ result.confidence }}%;"></div>
             </div>
           </div>
+
           <div class="result-stat">
             <div class="label">Saved Record</div>
             <div class="value" style="font-size: 12.5px;">{{ result.saved_id }}</div>
@@ -140,6 +119,12 @@
         </div>
         {% endif %}
 
+        <div class="mt-4">
+          <a href="{{ url_for('dashboard.analysis_detail', analysis_id=result.analysis_id) }}"
+             class="btn-ops-primary">
+            View Full Analysis
+          </a>
+        </div>
       </div>
     </div>
     {% endif %}
@@ -149,9 +134,18 @@
       <div class="panel-header">
         <div>
           <h2>Batch Results</h2>
-          <div class="sub">{{ batch_results|length }} log lines classified · Analysis ID: <span class="text-mono">{{ analysis_id }}</span></div>
+          <div class="sub">
+            {{ batch_results|length }} log lines classified · Analysis ID:
+            <span class="text-mono">{{ analysis_id }}</span>
+          </div>
         </div>
+
+        <a href="{{ url_for('dashboard.analysis_detail', analysis_id=analysis_id) }}"
+           class="btn-ops-primary">
+          View Full Analysis
+        </a>
       </div>
+
       <div style="overflow-x: auto;">
         <table class="table-ops">
           <thead>
@@ -163,13 +157,16 @@
               <th>Keywords</th>
             </tr>
           </thead>
+
           <tbody>
             {% for item in batch_results %}
             <tr>
               <td class="cell-mono">{{ loop.index }}</td>
               <td>{{ incident_badge(item.predicted_incident) }}</td>
               <td class="cell-primary">{{ item.confidence }}%</td>
-              <td class="cell-mono" style="max-width: 320px; white-space: normal;">{{ item.clean_log }}</td>
+              <td class="cell-mono" style="max-width: 320px; white-space: normal;">
+                {{ item.clean_log }}
+              </td>
               <td>
                 {% for kw in item.keywords %}
                   <span class="keyword-chip">{{ kw }}</span>
@@ -186,10 +183,6 @@
     {% if not result and not batch_results %}
     <div class="panel">
       <div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"></path>
-          <rect x="9" y="3" width="6" height="4" rx="1"></rect>
-        </svg>
         <div>Paste a log or upload a file to see analysis results here.</div>
       </div>
     </div>
@@ -221,12 +214,13 @@
     }
   }
 
-  // Show chosen filename in the drop zone
   const logFileInput = document.getElementById('log_file');
+
   if (logFileInput) {
     logFileInput.addEventListener('change', function () {
       const preview = document.getElementById('fileNamePreview');
       const dropZone = document.getElementById('fileDropZone');
+
       if (this.files && this.files.length > 0) {
         preview.textContent = this.files[0].name;
         preview.style.display = 'block';

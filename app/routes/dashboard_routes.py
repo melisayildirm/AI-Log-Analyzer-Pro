@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, abort, Response, jsonify
 import csv
 import io
 from datetime import datetime
+from app.services.llm_service import generate_ai_summary
 
 from app.services.dashboard_service import (
     get_total_predictions,
@@ -97,7 +98,6 @@ def export_analysis_json(analysis_id):
 
     predictions = get_predictions_by_analysis_id(analysis_id)
     summary = get_analysis_summary(analysis_id)
-
     cleaned_predictions = []
 
     for item in predictions:
@@ -142,10 +142,12 @@ def analysis_detail(analysis_id):
 
     predictions = get_predictions_by_analysis_id(analysis_id)
     summary = get_analysis_summary(analysis_id)
+    ai_summary = generate_ai_summary(analysis, summary, predictions)
 
     return render_template(
         "analysis_detail.html",
         analysis=analysis,
         predictions=predictions,
-        summary=summary
+        summary=summary,
+        ai_summary=ai_summary
     )
