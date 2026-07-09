@@ -8,7 +8,10 @@ from app.services.dashboard_service import (
     get_recent_analyses,
     get_analysis_by_id,
     get_predictions_by_analysis_id,
-    get_analysis_summary
+    get_analysis_summary,
+    get_incident_distribution,
+    get_confidence_distribution,
+    get_analyses_by_day
 )
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -20,14 +23,19 @@ def dashboard():
     average_confidence = get_average_confidence()
     most_common_incident = get_most_common_incident()
     recent_analyses = get_recent_analyses(limit=10)
-
+    incident_distribution = get_incident_distribution()
+    confidence_distribution = get_confidence_distribution()
+    analyses_by_day = get_analyses_by_day()
     return render_template(
         "dashboard.html",
         total_predictions=total_predictions,
         total_analyses=total_analyses,
         average_confidence=average_confidence,
         most_common_incident=most_common_incident,
-        recent_analyses=recent_analyses
+        recent_analyses=recent_analyses,
+        incident_distribution=incident_distribution,
+        confidence_distribution=confidence_distribution,
+        analyses_by_day=analyses_by_day
     )
 @dashboard_bp.route("/analysis/<analysis_id>")
 def analysis_detail(analysis_id):

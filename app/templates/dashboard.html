@@ -102,6 +102,51 @@
   </div>
 
 </div>
+<div class="row g-4 mb-4">
+
+  <div class="col-12 col-xl-4">
+    <div class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2>Incident Distribution</h2>
+          <div class="sub">Incident types across all logs</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <canvas id="incidentChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-4">
+    <div class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2>Confidence Distribution</h2>
+          <div class="sub">Model confidence ranges</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <canvas id="confidenceChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-4">
+    <div class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2>Analyses by Day</h2>
+          <div class="sub">Last 7 days activity</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <canvas id="analysesChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
 
 <!-- ============================== RECENT ANALYSES ============================== -->
 <div class="panel">
@@ -163,4 +208,143 @@
   {% endif %}
 </div>
 
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  const incidentDistribution = {{ incident_distribution | tojson }};
+  const confidenceDistribution = {{ confidence_distribution | tojson }};
+  const analysesByDay = {{ analyses_by_day | tojson }};
+
+  function getIncidentColor(label) {
+    const value = label.toLowerCase();
+
+    if (value.includes("memory")) return "#ef4444";
+    if (value.includes("storage") || value.includes("file")) return "#f59e0b";
+    if (value.includes("network") || value.includes("communication")) return "#3b82f6";
+    if (value.includes("system") || value.includes("interrupt")) return "#8b5cf6";
+    if (value.includes("power") || value.includes("thermal")) return "#f97316";
+    if (value.includes("application")) return "#22c55e";
+
+    return "#94a3b8";
+  }
+
+  function formatDateLabel(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit"
+    });
+  }
+
+  function getConfidenceColor(label) {
+    if (label === "90-100") return "#22c55e";
+    if (label === "80-90") return "#f59e0b";
+    if (label === "70-80") return "#f97316";
+    return "#ef4444";
+  }
+
+  const incidentLabels = Object.keys(incidentDistribution);
+  const confidenceLabels = Object.keys(confidenceDistribution);
+  const analysesLabels = Object.keys(analysesByDay);
+
+  new Chart(document.getElementById("incidentChart"), {
+    type: "doughnut",
+    data: {
+      labels: incidentLabels,
+      datasets: [{
+        data: Object.values(incidentDistribution),
+        backgroundColor: incidentLabels.map(getIncidentColor),
+        borderColor: "#0f172a",
+        borderWidth: 2
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          labels: {
+            color: "#cbd5e1",
+            boxWidth: 14,
+            padding: 14
+          }
+        }
+      },
+      cutout: "58%"
+    }
+  });
+
+  new Chart(document.getElementById("confidenceChart"), {
+    type: "bar",
+    data: {
+      labels: confidenceLabels,
+      datasets: [{
+        label: "Logs",
+        data: Object.values(confidenceDistribution),
+        backgroundColor: confidenceLabels.map(getConfidenceColor),
+        borderRadius: 6
+      }]
+    },
+    options: {
+      scales: {
+        x: {
+          ticks: { color: "#cbd5e1" },
+          grid: { color: "rgba(148, 163, 184, 0.08)" }
+        },
+        y: {
+          ticks: { color: "#cbd5e1" },
+          grid: { color: "rgba(148, 163, 184, 0.08)" },
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        legend: {
+          labels: { color: "#cbd5e1" }
+        }
+      }
+    }
+  });
+
+  new Chart(document.getElementById("analysesChart"), {
+    type: "line",
+    data: {
+      labels: analysesLabels.map(formatDateLabel),
+      datasets: [{
+        label: "Analyses",
+        data: Object.values(analysesByDay),
+        tension: 0.35,
+        borderColor: "#38bdf8",
+        backgroundColor: "rgba(56, 189, 248, 0.18)",
+        pointBackgroundColor: "#38bdf8",
+        pointBorderColor: "#38bdf8",
+        fill: true
+      }]
+    },
+    options: {
+      scales: {
+        x: {
+          ticks: {
+            color: "#cbd5e1",
+            maxRotation: 35,
+            minRotation: 0
+          },
+          grid: { color: "rgba(148, 163, 184, 0.08)" }
+        },
+        y: {
+          ticks: {
+            color: "#cbd5e1",
+            precision: 0
+          },
+          grid: { color: "rgba(148, 163, 184, 0.08)" },
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        legend: {
+          labels: { color: "#cbd5e1" }
+        }
+      }
+    }
+  });
+</script>
 {% endblock %}

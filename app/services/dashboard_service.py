@@ -181,3 +181,71 @@ def generate_recommendations(incident_distribution):
         recommendations.append("Multiple or unclear incident patterns detected. Review detailed logs and keyword distribution.")
 
     return recommendations
+from datetime import datetime, timedelta
+
+
+def get_incident_distribution():
+    pipeline = [
+        {"$group": {"_id": "$incident_type", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+
+    result = list(predictions_collection.aggregate(pipeline))
+
+    return {
+        item["_id"] or "Unknown": item["count"]
+        for item in result
+    }
+
+
+def get_confidence_distribution():
+    buckets = {
+        "0-50": 0,
+        "50-70": 0,
+        "70-80": 0,
+        "80-90": 0,
+        "90-100": 0
+    }
+
+    predictions = predictions_collection.find({}, {"confidence": 1})
+
+    for item in predictions:
+        confidence = item.get("confidence", 0)
+
+        if confidence < 50:
+            buckets["0-50"] += 1
+        elif confidence < 70:
+            buckets["50-70"] += 1
+        elif confidence < 80:
+            buckets["70-80"] += 1
+        elif confidence < 90:
+            buckets["80-90"] += 1
+        else:
+            buckets["90-100"] += 1
+
+    return buckets
+
+
+def get_analyses_by_day(days=7):
+    today = datetime.now().date()
+    start_date = today - timedelta(days=days - 1)
+
+    day_counts = {
+        (start_date + timedelta(days=i)).strftime("%Y-%m-%d"): 0
+        for i in range(days)
+    }
+
+    analyses = analyses_collection.find({
+        "created_at": {
+            "$gte": datetime.combine(start_date, datetime.min.time())
+        }
+    })
+
+    for analysis in analyses:
+        created_at = analysis.get("created_at")
+        if created_at:
+            day_key = created_at.date().strftime("%Y-%m-%d")
+            if day_key in day_counts:
+                day_counts[day_key] += 1
+
+    return day_counts
